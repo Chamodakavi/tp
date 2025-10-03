@@ -63,14 +63,25 @@ export default function App() {
       <Box sx={{ position: "relative", zIndex: 1 }}>
         <AppBarWithSearch onSearch={handleSearch} />
 
-        <Box mt={5} ml={5} display="flex">
+        <Box mt={5} ml={5} display={{ md: "flex", sm: "block", xs: "block" }}>
           <WeatherCard weather={weather} location={location} />
           <Box width={5} bgcolor={"black"} mx={5}></Box>
           <Box mx={5}>
             <SearchForm />
           </Box>
-          <Box width={5} bgcolor={"pink"} mx={5}></Box>
-          <Box>
+          <Box
+            sx={{
+              display: { xs: "none", md: "block" },
+            }}
+            width={5}
+            bgcolor={"pink"}
+            mx={5}
+          ></Box>
+          <Box
+            sx={{
+              display: { xs: "none", md: "block" },
+            }}
+          >
             <Poster />
           </Box>
         </Box>

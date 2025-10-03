@@ -13,8 +13,9 @@ export default function WeatherCard({ weather, location }) {
         mb: 6,
         boxShadow: "0 8px 36px #22226366",
         color: "#fff",
-        maxWidth: "17%",
+        maxWidth: { md: "17%", sm: "40%", xs: "40%" },
         backdropFilter: "blur(2px)",
+        height: "20%",
       }}
     >
       <Grid container alignItems="center" spacing={2}>
