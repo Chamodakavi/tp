@@ -7,6 +7,7 @@ import {
   Grid,
   Card,
   CardContent,
+  Dialog,
 } from "@mui/material";
 import AirIcon from "@mui/icons-material/Air";
 import PeopleIcon from "@mui/icons-material/People";
@@ -14,6 +15,8 @@ import SecurityIcon from "@mui/icons-material/Security";
 import WbSunnyIcon from "@mui/icons-material/WbSunny";
 import { getWeatherData } from "../utils/OpenWeatherAPI";
 import { getAirQuality, getCountryData } from "../utils/OpenWeatherAPI";
+import { GoogleLogin } from "@react-oauth/google";
+import { useAuth } from "../utils/AuthContext";
 
 export default function SearchForm() {
   // Store city and country separately in inputs state
@@ -21,6 +24,8 @@ export default function SearchForm() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { isLoggedIn, login } = useAuth();
+  const [openLogin, setOpenLogin] = useState(false);
 
   // Handle inputs change individually by name
   const handleChange = (e) => {
@@ -30,6 +35,12 @@ export default function SearchForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!isLoggedIn) {
+      setOpenLogin(true);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setResult(null);
@@ -55,6 +66,13 @@ export default function SearchForm() {
     }
   };
 
+  const handleLoginSuccess = (credentialResponse) => {
+    login(credentialResponse);
+    setOpenLogin(false);
+  };
+  const handleError = () => {
+    console.log("Login Failed");
+  };
   const kelvinToCelsius = (k) => (k - 273.15).toFixed(1);
 
   return (
@@ -249,6 +267,30 @@ export default function SearchForm() {
           )}
         </Grid>
       )}
+
+      <>
+        {/* Your form JSX here */}
+        <Dialog
+          open={openLogin}
+          onClose={() => setOpenLogin(false)}
+          maxWidth="xs"
+          fullWidth
+        >
+          <Box sx={{ p: 2, textAlign: "center" }}>
+            <Typography variant="h6" gutterBottom>
+              Sign in with Google
+            </Typography>
+            <GoogleLogin onSuccess={handleLoginSuccess} onError={handleError} />
+            <Button
+              variant="outlined"
+              sx={{ mt: 2 }}
+              onClick={() => setOpenLogin(false)}
+            >
+              Cancel
+            </Button>
+          </Box>
+        </Dialog>
+      </>
     </Box>
   );
 }
