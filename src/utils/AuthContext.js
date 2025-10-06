@@ -17,6 +17,7 @@ export function AuthProvider({ children }) {
         picture: decoded.picture,
       });
       setIsLoggedIn(true);
+      console.log("OAuth Token:", credentialResponse.credential);
     } catch (err) {
       setUser(null);
       setIsLoggedIn(false);

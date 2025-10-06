@@ -13,13 +13,15 @@ import AirIcon from "@mui/icons-material/Air";
 import PeopleIcon from "@mui/icons-material/People";
 import SecurityIcon from "@mui/icons-material/Security";
 import WbSunnyIcon from "@mui/icons-material/WbSunny";
-import { getWeatherData } from "../utils/OpenWeatherAPI";
-import { getAirQuality, getCountryData } from "../utils/OpenWeatherAPI";
+import {
+  getWeatherData,
+  getAirQuality,
+  getCountryData,
+} from "../utils/OpenWeatherAPI";
 import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../utils/AuthContext";
 
 export default function SearchForm() {
-  // Store city and country separately in inputs state
   const [inputs, setInputs] = useState({ city: "", country: "" });
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -27,45 +29,66 @@ export default function SearchForm() {
   const { isLoggedIn, login } = useAuth();
   const [openLogin, setOpenLogin] = useState(false);
 
-  // Handle inputs change individually by name
+  // Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setInputs((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Fetch APIs and send to database on submit
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!isLoggedIn) {
       setOpenLogin(true);
       return;
     }
-
     setLoading(true);
     setError(null);
     setResult(null);
+
     try {
-      // Fetch by city only (country can be used elsewhere)
-      const data = await getWeatherData(inputs.city.trim());
-      const dataAir = await getAirQuality(inputs.city.trim());
-      const dataCountry = await getCountryData(inputs.country.trim());
+      const city = inputs.city.trim();
+      const country = inputs.country.trim();
 
-      console.log("Air Quality Data:", dataAir);
-      console.log("country:", dataCountry);
+      // API calls
+      const weatherDetails = await getWeatherData(city);
+      const airQuality = await getAirQuality(city);
+      const population = await getCountryData(country);
 
-      setResult({
-        airQuality: dataAir, // placeholders
-        population: dataCountry,
-        safetyRating: 4.7,
-        weatherDetails: data,
+      // Example safety rating is hardcoded (replace with real source if available)
+      const safetyRating = 4.7;
+
+      const apiResult = {
+        airQuality,
+        population,
+        safetyRating,
+        weatherDetails,
+      };
+      setResult(apiResult);
+
+      // POST to database (recording query, silently – not displayed)
+      const accessToken = localStorage.getItem("oauthToken");
+      const apiKey = "chamoda-2001-1225-hapuarachchi";
+      await fetch("http://localhost:5000/api/records", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+          "x-api-key": apiKey,
+        },
+        body: JSON.stringify({
+          data: { city, country, ...apiResult },
+        }),
       });
-    } catch {
+    } catch (err) {
       setError("Failed to fetch weather data. Please try again.");
+      setResult(null);
     } finally {
       setLoading(false);
     }
   };
 
+  // Google login handling
   const handleLoginSuccess = (credentialResponse) => {
     login(credentialResponse);
     setOpenLogin(false);
@@ -73,6 +96,8 @@ export default function SearchForm() {
   const handleError = () => {
     console.log("Login Failed");
   };
+
+  // Kelvin to Celsius converter for weather data
   const kelvinToCelsius = (k) => (k - 273.15).toFixed(1);
 
   return (
@@ -81,7 +106,6 @@ export default function SearchForm() {
       onSubmit={handleSubmit}
       sx={{
         width: "100%",
-        //maxWidth: 600,
         mx: "auto",
         ml: { md: "auto", sm: -5, xs: -5 },
         p: 3,
@@ -101,7 +125,6 @@ export default function SearchForm() {
       >
         Enter Destination
       </Typography>
-
       {/* Country input */}
       <TextField
         name="country"
@@ -119,7 +142,6 @@ export default function SearchForm() {
           },
         }}
       />
-
       {/* City input */}
       <TextField
         name="city"
@@ -138,7 +160,6 @@ export default function SearchForm() {
           },
         }}
       />
-
       <Button
         type="submit"
         variant="contained"
@@ -148,13 +169,13 @@ export default function SearchForm() {
       >
         {loading ? "Loading..." : "Search"}
       </Button>
-
       {error && (
         <Typography mt={2} color="error">
           {error}
         </Typography>
       )}
 
+      {/* Weather UI: show cards if result is available */}
       {result && (
         <Grid container spacing={2} mt={4}>
           {/* Air Quality Card */}
@@ -178,7 +199,6 @@ export default function SearchForm() {
               </CardContent>
             </Card>
           </Grid>
-
           {/* Population Card */}
           <Grid item xs={12} sm={4}>
             <Card sx={{ bgcolor: "#293d49" }}>
@@ -199,7 +219,6 @@ export default function SearchForm() {
               </CardContent>
             </Card>
           </Grid>
-
           {/* Safety Rating Card */}
           <Grid item xs={12} sm={4}>
             <Card sx={{ bgcolor: "#243e3d" }}>
@@ -218,7 +237,6 @@ export default function SearchForm() {
               </CardContent>
             </Card>
           </Grid>
-
           {/* Weather Details Card */}
           {result.weatherDetails && (
             <Grid item xs={12}>
@@ -233,7 +251,6 @@ export default function SearchForm() {
                     Weather in {result.weatherDetails.name},{" "}
                     {result.weatherDetails.sys?.country}
                   </Typography>
-
                   <Grid container spacing={2} alignItems="center">
                     <Grid item>
                       <WbSunnyIcon sx={{ fontSize: 48, color: "#ffd54f" }} />
@@ -250,13 +267,11 @@ export default function SearchForm() {
                       </Typography>
                     </Grid>
                   </Grid>
-
                   <Typography mt={2} color="#ccc">
                     Humidity: {result.weatherDetails.main?.humidity}% | Wind:{" "}
                     {result.weatherDetails.wind?.speed} m/s | Clouds:{" "}
                     {result.weatherDetails.clouds?.all}%
                   </Typography>
-
                   <Typography mt={1} color="#ccc">
                     Pressure: {result.weatherDetails.main?.pressure} hPa |
                     Visibility: {result.weatherDetails.visibility} meters
@@ -267,30 +282,27 @@ export default function SearchForm() {
           )}
         </Grid>
       )}
-
-      <>
-        {/* Your form JSX here */}
-        <Dialog
-          open={openLogin}
-          onClose={() => setOpenLogin(false)}
-          maxWidth="xs"
-          fullWidth
-        >
-          <Box sx={{ p: 2, textAlign: "center" }}>
-            <Typography variant="h6" gutterBottom>
-              Sign in with Google
-            </Typography>
-            <GoogleLogin onSuccess={handleLoginSuccess} onError={handleError} />
-            <Button
-              variant="outlined"
-              sx={{ mt: 2 }}
-              onClick={() => setOpenLogin(false)}
-            >
-              Cancel
-            </Button>
-          </Box>
-        </Dialog>
-      </>
+      {/* Login dialog */}
+      <Dialog
+        open={openLogin}
+        onClose={() => setOpenLogin(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <Box sx={{ p: 2, textAlign: "center" }}>
+          <Typography variant="h6" gutterBottom>
+            Sign in with Google
+          </Typography>
+          <GoogleLogin onSuccess={handleLoginSuccess} onError={handleError} />
+          <Button
+            variant="outlined"
+            sx={{ mt: 2 }}
+            onClick={() => setOpenLogin(false)}
+          >
+            Cancel
+          </Button>
+        </Box>
+      </Dialog>
     </Box>
   );
 }
